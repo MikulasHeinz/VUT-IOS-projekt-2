@@ -14,8 +14,8 @@
 
 
 
-sem_t *s_outside = NULL; //pruchod, pokud je soudce v venku
-sem_t *s_inside = NULL; //pruchod, pokud je soudce v budove
+sem_t *s_outside = NULL; //open, if the judge is outside
+sem_t *s_inside = NULL; //open, if the judge is inside
 sem_t *mutex_entering = NULL;
 sem_t *mutex_checking = NULL;
 sem_t *programStops = NULL;
@@ -27,11 +27,11 @@ FILE *pfile;
 
 
 //global variables
-int pi; //pocet migrantu
-int ig; //max doba generovani migranta
-int jg; //max doba, kdy soudce vejde zpet do budovy
-int it; //doba trvani vyzvedavani certifikatu
-int jt; // doba trvani vydavani rozhodnuti
+int pi; //number of imigrants
+int ig; //max time to generate immigrant
+int jg; //max after which judge enters the building again
+int it; // time of taking the certifikate
+int jt; // time of deciding
 
 int immNum;
 //print variables
@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     }
     //read arguments
     if (argc != 6){
-        fputs("error: invalid arguments\n", stderr); //v pripade nevhodneho poctu argumentu
+        fputs("error: invalid arguments\n", stderr); 
         return 1;
     }
     char *chyba = NULL;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[]) {
     }
     if (init() == -1){
         cleanup();
-        fputs("probehl cleanup nepovedeneho initu", stderr);
+        fputs("cleaning after failed init", stderr);
         return 1;
     }
     for(int i = 0; i < pi; i++){
@@ -218,18 +218,18 @@ void generateImmigrants(int ipi, int iig){
 void processImmigrant(){
     int thisImmNum = immNum;
     immPrintShort(thisImmNum);  //starts
-    sem_wait(s_outside);    //ceka, pokud je soudce v budove
-    sem_wait(mutex_entering);  //vstupuje po jednoum
+    sem_wait(s_outside);    //waits if the judge inside
+    sem_wait(mutex_entering);  //entering one by one
     immigrantEnters(thisImmNum); //enters
     sem_post(s_outside);
-    sem_post(mutex_entering); //uvolni vchod
-    sem_wait(mutex_checking); //registruje se singl
+    sem_post(mutex_entering); //clears the entrance
+    sem_wait(mutex_checking); //registration one by one
     immChecks(thisImmNum); //checks
     if ((*judgeInside) == 1 && (*ne) == (*nc)){
         sem_post(allRegistered);
     }
     else{
-        sem_post(mutex_checking); //uvolni registraci
+        sem_post(mutex_checking); //clears the registration
     }
     sem_wait(judgeHasDecided);
     immWantsCertificate(thisImmNum);
